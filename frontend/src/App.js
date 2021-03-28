@@ -1,74 +1,149 @@
-import React, { useState } from 'react'
-import Navbar from './Navbar'
-import SearchReviews from './SearchReviews'
-import AddReviews from './AddReviews'
-import EditReviews from './EditReviews'
-import { TabsDiv, TabBtn, Divider } from './styles'
+import React, { Component } from 'react'
+import axios from 'axios'
+import Navbar from './components/Navbar'
+import SearchReviews from './components/SearchReviews'
+import AddReviews from './components/AddReviews'
+import EditReviews from './components/EditReviews'
+import { LoginText, TabsDiv, TabBtn, Divider } from './styles/styles'
 
-const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [searchSelected, setSearchSelected] = useState(true)
-  const [addSelected, setAddSelected] = useState(false)
-  const [editSelected, setEditSelected] = useState(false)
+class App extends Component {
+  state = {
+    isLoggedIn: false,
+    userID: '',
+    courses: [],
+    courseToProfs: {},
+    courseCodeToName: {},
+    searchSelected: true,
+    addSelected: false,
+    editSelected: false
+  }
+  
+  async componentDidMount() {
+    const res = await axios.get('/getCoursesAndProfs')
+    let courses = []
+    let courseToProfs = {}
+    let courseCodeToName = {}
 
-  const logIn = () => setIsLoggedIn(true)
-  const logOut = () => setIsLoggedIn(false)
+    // Initializes courses options array and course code -> professors and course name maps
+    for (const course of res.data) {
+      const courseCode = course.CourseCode
+      const courseLabel = `${courseCode}: ${course.CourseTitle}`
 
-  const searchTabClicked = () => {
-    setSearchSelected(true)
-    setAddSelected(false)
-    setEditSelected(false)
+      if (courseCode in courseToProfs) {
+        courseToProfs[courseCode] = [...courseToProfs[courseCode],
+                                    { value: course.ProfessorName,
+                                      label: course.ProfessorName }]
+      } else {
+        courseToProfs[courseCode] = [{ value: course.ProfessorName,
+                                       label: course.ProfessorName }]
+
+        const courseEntry = { value: courseCode, label: courseLabel }
+        courses.push(courseEntry)
+
+        courseCodeToName[courseCode] = course.CourseTitle
+      }
+    }
+
+    this.setState({
+      courses: courses,
+      courseToProfs: courseToProfs,
+      courseCodeToName: courseCodeToName
+    })
   }
 
-  const addTabClicked = () => {
-    setSearchSelected(false)
-    setAddSelected(true)
-    setEditSelected(false)
+  logIn = userID => this.setState({isLoggedIn: true, userID: userID})
+
+  logOut = () => {
+    this.setState({
+      isLoggedIn: false,
+      userID: '',
+      userReviews: [],
+      courses: [],
+      courseToProfs: {},
+      courseCodeToName: {},
+      reviewOptions: [],
+      searchSelected: true,
+      addSelected: false,
+      editSelected: false
+    })
   }
 
-  const editTabClicked = () => {
-    setSearchSelected(false)
-    setAddSelected(false)
-    setEditSelected(true)
+  searchTabClicked = () => {
+    this.setState({
+      searchSelected: true,
+      addSelected: false,
+      editSelected: false
+    })
   }
 
-  return (
-    <div>
-      <Navbar isLoggedIn={isLoggedIn}
-              logIn={logIn}
-              logOut={logOut} />
+  addTabClicked = () => {
+    this.setState({
+      searchSelected: false,
+      addSelected: true,
+      editSelected: false
+    })
+  }
 
-      <TabsDiv>
-        <TabBtn selected={searchSelected}
-                onClick={searchTabClicked}>
-          Search Course Reviews
-        </TabBtn>
+  editTabClicked = () => {
+    this.setState({
+      searchSelected: false,
+      addSelected: false,
+      editSelected: true
+    })
+  }
 
-        <Divider>|</Divider>
+  render() {
+    const { isLoggedIn, userID, courses, courseToProfs, searchSelected, addSelected,
+            editSelected, courseCodeToName } = this.state
 
-        <TabBtn selected={addSelected}
-                onClick={addTabClicked}>
-          Add a Course Review
-        </TabBtn>
+    return (
+      <>
+        <Navbar isLoggedIn={isLoggedIn}
+                logIn={this.logIn}
+                logOut={this.logOut} />
 
-        <Divider>|</Divider>
+        {isLoggedIn ?
+          <>        
+            <TabsDiv>
+              <TabBtn selected={searchSelected}
+                      onClick={this.searchTabClicked}>
+                Search Course Reviews
+              </TabBtn>
+        
+              <Divider>|</Divider>
+        
+              <TabBtn selected={addSelected}
+                      onClick={this.addTabClicked}>
+                Add a Course Review
+              </TabBtn>
+        
+              <Divider>|</Divider>
+        
+              <TabBtn selected={editSelected}
+                      onClick={this.editTabClicked}>
+                Edit/Delete My Reviews
+              </TabBtn>
+            </TabsDiv>
+            <>
+              {searchSelected ? <SearchReviews courses={courses}
+                                               courseToProfs={courseToProfs} />
 
-        <TabBtn selected={editSelected}
-                onClick={editTabClicked}>
-          Edit/Delete My Reviews
-        </TabBtn>
-      </TabsDiv>
+              : addSelected ? <AddReviews userID={userID}
+                                          courses={courses}
+                                          courseToProfs={courseToProfs} />
 
-      <div>
-        {searchSelected ?
-          <SearchReviews />
-        : addSelected ?
-          <AddReviews />
-        : <EditReviews />}
-      </div>
+              : editSelected ? <EditReviews userID={userID}
+                                            courses={courses}
+                                            courseCodeToName={courseCodeToName}
+                                            courseToProfs={courseToProfs} />
+              : <></>}
+            </>
+          </>
 
-    </div>
-  )
+        : <LoginText>Log In/Sign up to View, Add, or Edit/Delete Reviews</LoginText>}
+      </>
+    )
+  }
 }
 
 export default App
