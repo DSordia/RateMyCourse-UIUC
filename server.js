@@ -19,12 +19,12 @@ db.connect(err => {
     console.log('Connected to MySQL Database.')
 })
 
-// Check if user already exists in DB. If not, add user to DB. :id is user ID
-app.get('/getUser/:id', (req, res) => {
-    const userID = req.params.id
+// Check if user already exists in DB. If not, add user to DB
+app.post('/loginSignupUser', (req, res) => {
+    const userID = req.query.userID
     const email = req.query.email
 
-    let sql = `
+    const sql = `
         SELECT *
         FROM user
         WHERE UserID = '${userID}'
@@ -33,14 +33,13 @@ app.get('/getUser/:id', (req, res) => {
         if (err) throw err
         // User doesn't already exist in DB; create user
         if (results.length == 0) {
-            sql = `
+            const sql = `
                 INSERT INTO user
                 VALUES('${userID}',
                        '${email}')
             `
             db.query(sql, err => {
                 if (err) throw err
-                // User has no reviews; send empty array
                 res.send('Created user.')
             })
         } else {
@@ -49,50 +48,35 @@ app.get('/getUser/:id', (req, res) => {
     })
 })
 
-// Get user reviews; :id is user ID
+// Get user reviews
 app.get('/getUserReviews/:id', (req, res) => {
-    let sql = `
+    const sql = `
         SELECT *
         FROM review
         WHERE UserID = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
         if (err) throw err
-        // Return array of user's reviews
         res.send(results)
     })
 })
 
-// Get courses
-app.get('/getCoursesAndProfs', (req, res) => {
-    let sql = `
-        SELECT DISTINCT CourseCode, CourseTitle, ProfessorName
-        FROM course
-    `
-    db.query(sql, (err, results) => {
-        if (err) throw err
-        // Return array of courses / professors
-        res.send(results)
-    })
-})
-
-// Get reviews for course; :id is course code
+// Get reviews for course
 app.get('/getReviews/:id', (req, res) => {
-    let sql = `
+    const sql = `
         SELECT *
         FROM review
         WHERE CourseCode = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
         if (err) throw err
-        // Return array of review objects
         res.send(results)
     })
 })
 
 // Add review to DB
-app.get('/addReview', (req, res) => {
-    let sql = `
+app.post('/addReview', (req, res) => {
+    const sql = `
         INSERT INTO review
         VALUES(${req.query.reviewID},
                '${req.query.reviewText}',
@@ -109,8 +93,8 @@ app.get('/addReview', (req, res) => {
 })
 
 // Edit review in DB
-app.get('/editReview', (req, res) => {
-    let sql = `
+app.patch('/editReview', (req, res) => {
+    const sql = `
         UPDATE review
         SET ReviewText = '${req.query.reviewText}',
             CourseRating = ${req.query.courseRating},
@@ -125,9 +109,9 @@ app.get('/editReview', (req, res) => {
     })
 })
 
-// Delete review from DB; :id is review ID
-app.get('/deleteReview/:id', (req, res) => {
-    let sql = `
+// Delete review from DB
+app.delete('/deleteReview/:id', (req, res) => {
+    const sql = `
         DELETE
         FROM review
         WHERE ReviewID = '${req.params.id}'
@@ -135,6 +119,83 @@ app.get('/deleteReview/:id', (req, res) => {
     db.query(sql, err => {
         if (err) throw err
         res.send('Deleted review from DB.')
+    })
+})
+
+// Get courses and professors
+app.get('/getCoursesAndProfs', (req, res) => {
+    const sql = `
+        SELECT DISTINCT CourseCode, CourseTitle, ProfessorName
+        FROM course
+        ORDER BY ProfessorName
+    `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+/* Advanced Query 1: Get department ID, department name, and size of department
+   for a course given the course code; :id is the course code */
+app.get('/getDeptInfo/:id', (req, res) => {
+    const sql = `
+        SELECT DISTINCT d1.DeptID, d1.DeptName, (SELECT COUNT(DISTINCT c2.CourseCode)
+                                                 FROM course c2 NATURAL JOIN department d2
+                                                 WHERE d2.DeptID = d1.DeptID) AS deptSize
+        FROM course c1 NATURAL JOIN department d1
+        WHERE c1.CourseCode = '${req.params.id}'
+    `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+/* Advanced Query 2: Get overall course rating
+   and professor ratings for that course; :id is CourseCode */
+app.get('/getCourseRating/:id', (req, res) => {
+    const sql = `
+        SELECT ProfessorName AS profName, AVG(ProfessorRating) AS profRating, (SELECT AVG(CourseRating)
+                                                                               FROM review
+                                                                               WHERE CourseCode = '${req.params.id}') AS courseRating
+        FROM review
+        WHERE CourseCode = '${req.params.id}'
+        GROUP BY ProfessorName
+        ORDER BY ProfessorName
+    `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+/* Advanced Query 3: Gets the avg rating of all courses in a department */
+app.get('/getAvgDeptRating/:id', (req, res) => {
+    const sql = `
+    SELECT d.DeptName, AVG(r.CourseRating) AS avgDeptCourseRating
+    FROM review r NATURAL JOIN department d
+    WHERE d.DeptID = '${req.params.id}' AND r.CourseCode IN (SELECT c.CourseCode
+                                                             FROM course c
+                                                             WHERE c.DeptID = '${req.params.id}')
+    `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+/* Advanced Query 4: Get course name and number of reviews for that course */
+app.get('/getCourseNameAndNumReviews/:id', (req, res) => {
+    const sql = `
+        SELECT DISTINCT c.CourseTitle, (SELECT COUNT(r.CourseCode)
+                                        FROM review r
+                                        WHERE r.CourseCode = '${req.params.id}') AS numReviews
+        FROM course c NATURAL JOIN review r
+        WHERE c.CourseCode = '${req.params.id}'
+    `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
     })
 })
 

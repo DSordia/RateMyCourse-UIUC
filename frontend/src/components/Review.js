@@ -4,7 +4,7 @@ import { CSSTransition } from 'react-transition-group'
 import axios from 'axios'
 import consts from '../constants'
 import AreYouSureModal from './AreYouSureModal'
-import { SearchReviewDiv, SearchReviewHeading, ProfessorText, HR, ReviewRatingText,
+import { SearchReviewDiv, SearchReviewHeading, ProfessorText, HR1, ReviewRatingText,
          ProfessorRatingText, ReviewText, DropdownDiv, ReviewHeading, ReviewDiv,
          ReviewTextArea, SubmitButton, AfterSubmit, DeleteButton } from '../styles/styles'
 
@@ -50,7 +50,7 @@ class Review extends Component {
         const { userID } = this.props
         const { course, professor, classRating, profRating, newReviewText } = this.state
 
-        // Need better way to do this..
+        // Need a better way to do this..
         const reviewID = Math.floor(Math.random() * 2147482647) + 1000
 
         const params = {
@@ -63,7 +63,7 @@ class Review extends Component {
             userID: userID
         }
 
-        await axios.get('/addReview', { params: params })
+        await axios.post('/addReview', null, { params: params })
         
         this.setState({
             course: '',
@@ -87,7 +87,7 @@ class Review extends Component {
             professorName: professor.label
         }
 
-        await axios.get('/editReview', { params: params })
+        await axios.patch('/editReview', null, { params: params })
 
         await this.props.updateReviews({value: course.value, label: course.label})
         
@@ -97,7 +97,7 @@ class Review extends Component {
     onDeleteReview = async () => {
         const reviewID = this.props.reviewID
 
-        await axios.get(`/deleteReview/${reviewID}`)
+        await axios.delete(`/deleteReview/${reviewID}`)
 
         this.props.removeReviewOption(reviewID)
 
@@ -139,10 +139,10 @@ class Review extends Component {
                     <SearchReviewDiv>
                         <SearchReviewHeading>{courseName}</SearchReviewHeading>
                         <ProfessorText>Professor: {professorName}</ProfessorText>
-                        <HR />
+                        <HR1 />
                         <ReviewRatingText>Class Rating: {courseRating} / 5</ReviewRatingText>
                         <ProfessorRatingText>Professor Rating: {professorRating} / 5</ProfessorRatingText>
-                        <HR />
+                        <HR1 />
                         <ReviewText>{reviewText}</ReviewText>
                     </SearchReviewDiv>
 

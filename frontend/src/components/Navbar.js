@@ -8,7 +8,8 @@ const Navbar = props => {
   
   const logIn = async response => {
     const userID = response.googleId
-    await axios.get(`/getUser/${userID}`, { params: {email: response.profileObj.email} })
+    await axios.post(`/loginSignupUser`, null, { params: {userID: userID,
+                                                          email: response.profileObj.email} })
     props.logIn(userID)
   }
 

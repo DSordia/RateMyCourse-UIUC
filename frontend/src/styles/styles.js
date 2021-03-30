@@ -60,6 +60,9 @@ export const DropdownHeading = styled.div`
   margin-bottom: 7%;
   font-size: 1.1rem;
 `
+export const SelectedCourseInfoDiv = styled.div`
+  font-size: 1.2rem;
+`
 export const SearchReviewDiv = styled.div`
   background-color: ${consts.GREY};
   width: 50%;
@@ -86,19 +89,29 @@ export const ProfessorText = styled.div`
   padding-top: 1%;
   font-size: 1.05rem;
 `
-export const HR = styled.hr`
+export const HR1 = styled.hr`
   width: 55%;
   border-top: 0.5px solid black;
   opacity: 30%;
 `
+export const HR2 = styled.hr`
+  width: 30%;
+  border-top: 0.5px solid black;
+  opacity: 30%;
+`
 export const OverallCourseRatingText = styled.div`
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   font-weight: 700;
   padding-top: 1%;
 `
-export const OverallProfRatingText = styled.div`
+export const OverallRatingText = styled.div`
   font-size: 1.2rem;
   font-weight: 700;
+`
+export const ReviewsHeading = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: -1%;
 `
 export const ReviewRatingText = styled.div`
   font-size: 1.4rem;

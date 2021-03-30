@@ -30,9 +30,18 @@ class App extends Component {
       const courseLabel = `${courseCode}: ${course.CourseTitle}`
 
       if (courseCode in courseToProfs) {
-        courseToProfs[courseCode] = [...courseToProfs[courseCode],
-                                    { value: course.ProfessorName,
-                                      label: course.ProfessorName }]
+        let shouldAddProf = true
+        for (const prof of courseToProfs[courseCode]) {
+          if (prof.value === course.ProfessorName) {
+            shouldAddProf = false
+            break
+          }
+        }
+        if (shouldAddProf) {
+          courseToProfs[courseCode] = [...courseToProfs[courseCode],
+          { value: course.ProfessorName,
+            label: course.ProfessorName }]
+        }
       } else {
         courseToProfs[courseCode] = [{ value: course.ProfessorName,
                                        label: course.ProfessorName }]
