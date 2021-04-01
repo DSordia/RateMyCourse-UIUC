@@ -26,7 +26,7 @@ app.post('/loginSignupUser', (req, res) => {
 
     const sql = `
         SELECT *
-        FROM user
+        FROM User
         WHERE UserID = '${userID}'
     `
     db.query(sql, (err, results) => {
@@ -34,7 +34,7 @@ app.post('/loginSignupUser', (req, res) => {
         // User doesn't already exist in DB; create user
         if (results.length == 0) {
             const sql = `
-                INSERT INTO user
+                INSERT INTO User
                 VALUES('${userID}',
                        '${email}')
             `
@@ -52,7 +52,7 @@ app.post('/loginSignupUser', (req, res) => {
 app.get('/getUserReviews/:id', (req, res) => {
     const sql = `
         SELECT *
-        FROM review
+        FROM Review
         WHERE UserID = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
@@ -65,7 +65,7 @@ app.get('/getUserReviews/:id', (req, res) => {
 app.get('/getReviews/:id', (req, res) => {
     const sql = `
         SELECT *
-        FROM review
+        FROM Review
         WHERE CourseCode = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
@@ -77,7 +77,7 @@ app.get('/getReviews/:id', (req, res) => {
 // Add review to DB
 app.post('/addReview', (req, res) => {
     const sql = `
-        INSERT INTO review
+        INSERT INTO Review
         VALUES(${req.query.reviewID},
                '${req.query.reviewText}',
                ${req.query.courseRating},
@@ -95,7 +95,7 @@ app.post('/addReview', (req, res) => {
 // Edit review in DB
 app.patch('/editReview', (req, res) => {
     const sql = `
-        UPDATE review
+        UPDATE Review
         SET ReviewText = '${req.query.reviewText}',
             CourseRating = ${req.query.courseRating},
             ProfessorRating = ${req.query.professorRating},
@@ -113,7 +113,7 @@ app.patch('/editReview', (req, res) => {
 app.delete('/deleteReview/:id', (req, res) => {
     const sql = `
         DELETE
-        FROM review
+        FROM Review
         WHERE ReviewID = '${req.params.id}'
     `
     db.query(sql, err => {
@@ -126,7 +126,7 @@ app.delete('/deleteReview/:id', (req, res) => {
 app.get('/getCoursesAndProfs', (req, res) => {
     const sql = `
         SELECT DISTINCT CourseCode, CourseTitle, ProfessorName
-        FROM course
+        FROM Course
         ORDER BY ProfessorName
     `
     db.query(sql, (err, results) => {
@@ -140,9 +140,9 @@ app.get('/getCoursesAndProfs', (req, res) => {
 app.get('/getDeptInfo/:id', (req, res) => {
     const sql = `
         SELECT DISTINCT d1.DeptID, d1.DeptName, (SELECT COUNT(DISTINCT c2.CourseCode)
-                                                 FROM course c2 NATURAL JOIN department d2
+                                                 FROM Course c2 NATURAL JOIN Department d2
                                                  WHERE d2.DeptID = d1.DeptID) AS deptSize
-        FROM course c1 NATURAL JOIN department d1
+        FROM Course c1 NATURAL JOIN Department d1
         WHERE c1.CourseCode = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
@@ -156,9 +156,9 @@ app.get('/getDeptInfo/:id', (req, res) => {
 app.get('/getCourseRating/:id', (req, res) => {
     const sql = `
         SELECT ProfessorName AS profName, AVG(ProfessorRating) AS profRating, (SELECT AVG(CourseRating)
-                                                                               FROM review
+                                                                               FROM Review
                                                                                WHERE CourseCode = '${req.params.id}') AS courseRating
-        FROM review
+        FROM Review
         WHERE CourseCode = '${req.params.id}'
         GROUP BY ProfessorName
         ORDER BY ProfessorName
@@ -173,9 +173,9 @@ app.get('/getCourseRating/:id', (req, res) => {
 app.get('/getAvgDeptRating/:id', (req, res) => {
     const sql = `
     SELECT d.DeptName, AVG(r.CourseRating) AS avgDeptCourseRating
-    FROM review r NATURAL JOIN department d
+    FROM Review r NATURAL JOIN Department d
     WHERE d.DeptID = '${req.params.id}' AND r.CourseCode IN (SELECT c.CourseCode
-                                                             FROM course c
+                                                             FROM Course c
                                                              WHERE c.DeptID = '${req.params.id}')
     `
     db.query(sql, (err, results) => {
@@ -188,9 +188,9 @@ app.get('/getAvgDeptRating/:id', (req, res) => {
 app.get('/getCourseNameAndNumReviews/:id', (req, res) => {
     const sql = `
         SELECT DISTINCT c.CourseTitle, (SELECT COUNT(r.CourseCode)
-                                        FROM review r
+                                        FROM Review r
                                         WHERE r.CourseCode = '${req.params.id}') AS numReviews
-        FROM course c NATURAL JOIN review r
+        FROM Course c NATURAL JOIN Review r
         WHERE c.CourseCode = '${req.params.id}'
     `
     db.query(sql, (err, results) => {
