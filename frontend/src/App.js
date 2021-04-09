@@ -1,132 +1,119 @@
 import React, { Component } from 'react'
-import axios from 'axios'
 import Navbar from './components/Navbar'
 import SearchReviews from './components/SearchReviews'
 import AddReviews from './components/AddReviews'
 import EditReviews from './components/EditReviews'
 import EditTables from './components/EditTables'
 import { LoginText, TabsDiv, TabBtn, Divider } from './styles/styles'
+import axios from 'axios';
 
 class App extends Component {
   state = {
-    deptId: "",
-    deptName: ""
+    deptIdCreate: "",
+    deptNameCreate: "",
+    deptIdSearch: "",
+    deptNameSearch: "",
+    deptIdDelete: "",
+    deptIdUpdate: "",
+    deptNameUpdate: "",
+    deptData:[]
+
   }
 
 
-  handleChange = (deptId) => {
+  handleChange = (deptIdCreate) => {
     this.setState({
-      deptId: deptId
+      deptIdCreate: deptIdCreate
     })
   }
 
-  handleChange2 = (deptName) => {
+  handleChange2 = (deptNameCreate) => {
     this.setState({
-      deptName: deptName
+      deptNameCreate: deptNameCreate
     })
   }
+
+  handleChange3 = (deptIdSearch) => {
+    this.setState({
+      deptIdSearch: deptIdSearch
+    })
+  }
+
+  handleChange4 = (deptNameSearch) => {
+    this.setState({
+      deptNameSearch: deptNameSearch
+    })
+  }
+
+  handleChange5 = (deptNameUpdate) => {
+    this.setState({
+      deptNameUpdate: deptNameUpdate
+    })
+  }
+
 
   addDeptmethod=async()=>{
-    await axios.post(`/addDept`, null, { params: {deptId: this.state.deptId,
-                                                  deptName: this.state.deptName} })
+    const data1 = await axios.post(`/addDept`, null, { params: {deptId: this.state.deptIdCreate,
+                                                      deptName: this.state.deptNameCreate} })
+          console.log(data1)
+  }
+
+  searchDeptmethod=async()=>{
+    const data2 = await axios.get(`/searchDept/${this.state.deptIdSearch}`)
+          console.log(data2)
+          this.setState({
+            deptData: data2.data
+          })
+
+  }
+
+  deleteDept= async(deptIdDelete)=>{
+    const data3 = await axios.delete(`/deleteDept/${deptIdDelete}`)
+          console.log(data3)
+  }
+
+  updateDept=async(deptIdUpdate)=>{
+    const data4 = await axios.patch(`/updateDept`, null, { params: {deptId: deptIdUpdate,
+                                                                  deptName: this.state.deptNameUpdate} })
+          console.log(data4)
   }
 
 render() {
-    const { deptId, deptName } = this.state
+    const { deptIdCreate, deptNameCreate, deptIdSearch, deptNameSearch, deptData, deptNameUpdate, deptIdUpdate} = this.state
 
     return (
 
 
       <div className = "form">
-      <h1> CRUD App </h1>
-            <label>deptId</label>
+        <h1> CRUD App </h1>
+          <div>
+              <label>deptId1</label>
+              <input type="text" value = {deptIdCreate} onChange={e => this.handleChange(e.target.value)}/>
+              <label>deptName1</label>
 
-              <input type="text" value = {deptId} onChange={e => this.handleChange(e.target.value)}/>
-              <label>deptName</label>
-
-              <input type="text" value = {deptName} onChange={e => this.handleChange2(e.target.value)}/>
+              <input type="text" value = {deptNameCreate} onChange={e => this.handleChange2(e.target.value)}/>
               <button onClick = {this.addDeptmethod} >CREATE</button>
-              {/*
-              <input type="text" value = {deptId} onChange={e => this.handleChange(e.target.value)}/>
-              <label>deptName</label>
+          </div>
 
-              <input type="text" value = {deptName} onChange={e => this.handleChange2(e.target.value)}/>
-              <button>READ</button>
+              {/*NEED TO change to SEARCH*/}
+          <div>
+              <label>deptId2</label>
+              <input type="text" value = {deptIdSearch} onChange={e => this.handleChange3(e.target.value)}/>
+              <button onClick = {this.searchDeptmethod} >READ</button>
+          </div>
+          {deptData.map((val, i) => (
+              <div key = {i}>
+              <div className = "card">
+                <h1> Department ID: {val.DeptID} </h1>
+                <p>Department Name: {val.DeptName}</p>
+                <button onClick={() => { this.deleteDept(val.DeptID) }}> Delete</button>
+                <input type="text" value = {deptNameUpdate} id="Update Department Name" onChange={(e) => this.handleChange5(e.target.value)}/>
+                <button onClick={() => { this.updateDept(val.DeptID)}}> Update</button>
+                </div>
+              </div>
+          ))}
+    </div>
 
-              <input type="text" value = {deptId} onChange={e => this.handleChange(e.target.value)}/>
-              <label>deptName</label>
-
-              <input type="text" value = {deptName} onChange={e => this.handleChange2(e.target.value)}/>
-              <button>EDIT</button>
-
-              <input type="text" value = {deptId} onChange={e => this.handleChange(e.target.value)}/>
-              <label>deptName</label>
-
-              <input type="text" value = {deptName} onChange={e => this.handleChange2(e.target.value)}/>
-              <button>DELETE</button>
-              */}
-
-              <h3> {deptId} </h3>
-              <h3> {deptName} </h3>
-      </div>
-      // <>
-      //   <Navbar isLoggedIn={isLoggedIn}
-      //           logIn={this.logIn}
-      //           logOut={this.logOut} />
-      //
-      //   {isLoggedIn ?
-      //     <>
-      //       <TabsDiv>
-      //         <TabBtn selected={searchSelected}
-      //                 onClick={this.searchTabClicked}>
-      //           Search Course Reviews
-      //         </TabBtn>
-      //
-      //         <Divider>|</Divider>
-      //
-      //         <TabBtn selected={addSelected}
-      //                 onClick={this.addTabClicked}>
-      //           Add a Course Review
-      //         </TabBtn>
-      //
-      //         <Divider>|</Divider>
-      //
-      //         <TabBtn selected={editSelected}
-      //                 onClick={this.editTabClicked}>
-      //           Edit/Delete My Reviews
-      //         </TabBtn>
-      //
-      //         <Divider>|</Divider>
-      //
-      //         <TabBtn selected={tablesSelected}
-      //                 onClick={this.tablesTabClicked}>
-      //           Edit/Delete Tables
-      //         </TabBtn>
-      //       </TabsDiv>
-      //       <>
-      //         {searchSelected ? <SearchReviews courses={courses}
-      //                                          courseToProfs={courseToProfs} />
-      //
-      //         : addSelected ? <AddReviews userID={userID}
-      //                                     courses={courses}
-      //                                     courseToProfs={courseToProfs} />
-      //
-      //         : editSelected ? <EditReviews userID={userID}
-      //                                       courses={courses}
-      //                                       courseCodeToName={courseCodeToName}
-      //                                       courseToProfs={courseToProfs} />
-      //
-      //         : tablesSelected ? <EditTables  userID={userID}
-      //                                         courses={courses}
-      //                                         courseToProfs={courseToProfs}
-      //                                         //deptID={deptID}
-      //                                         /*deptName={deptName}*//>
-      //         : <></>}
-      //       </>
-      //     </>
-      //
-      //   : <LoginText>Log In/Sign up to View, Add, or Edit/Delete Reviews</LoginText>}
-      // </>
     )
   }
 }
