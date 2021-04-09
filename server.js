@@ -19,6 +19,172 @@ db.connect(err => {
     console.log('Connected to MySQL Database.')
 })
 
+/* COURSE TABLE METHODS */
+
+// Add course to DB
+app.post('/addCourse', (req, res) => {
+    const sql = `
+        INSERT INTO Course
+        VALUES('${req.query.courseId}',
+               '${req.query.deptId}',
+               '${req.query.courseCode}',
+               '${req.query.courseTitle}',
+               '${req.query.professorName}')
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Added Course.')
+    })
+})
+
+// Search for course in DB
+app.get('/readCourse/:id', (req, res) => {
+    const sql = `
+        SELECT * 
+        FROM Course 
+        WHERE CourseCode = '${req.params.id}'
+    `
+    db.query(sql, (err, results)  => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+// Edit course name in DB
+app.patch('/editCourse', (req, res) => {
+    const sql = `
+        UPDATE Course
+        SET CourseTitle = '${req.query.newCourseName}'
+        WHERE CourseID = '${req.query.courseID}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Edited review in DB.')
+    })
+})
+
+// Delete course from DB
+app.delete('/deleteCourse/:id', (req, res) => {
+    const sql = `
+        DELETE
+        FROM Course
+        WHERE CourseID = '${req.params.id}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Deleted course from DB.')
+    })
+})
+
+/* PROFESSOR TABLE METHODS */
+
+// Add professor to DB
+app.post('/addProfessor', (req, res) => {
+    const sql = `
+        INSERT INTO Professor
+        VALUES('${req.query.professorName}',
+               '${req.query.deptID}',
+               '${req.query.professorID}')
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Added Professor.')
+    })
+})
+
+// Search for professor in DB
+app.get('/readProfessor/:id', (req, res) => {
+    const sql = `
+        SELECT * 
+        FROM Professor
+        WHERE ProfessorID = '${req.params.id}'
+    `
+    db.query(sql, (err, results)  => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+// Edit professor name in DB
+app.patch('/editProfessor', (req, res) => {
+    const sql = `
+        UPDATE Professor
+        SET ProfessorName = '${req.query.newProfessorName}'
+        WHERE ProfessorID = '${req.query.professorID}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Edited professor in DB.')
+    })
+})
+
+// Delete professor from DB
+app.delete('/deleteProfessor/:id', (req, res) => {
+    const sql = `
+        DELETE
+        FROM Professor
+        WHERE ProfessorID = '${req.params.id}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Deleted professor from DB.')
+    })
+})
+
+/* DEPARTMENT TABLE METHODS */
+
+// Add department to DB
+app.post('/addDepartment', (req, res) => {
+    const sql = `
+        INSERT INTO Department
+        VALUES('${req.query.deptID}',
+               '${req.query.deptName}')
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Added Department.')
+    })
+})
+
+// Search for department in DB
+app.get('/readDepartment/:id', (req, res) => {
+    const sql = `
+        SELECT * 
+        FROM Department
+        WHERE DeptID = '${req.params.id}'
+    `
+    db.query(sql, (err, results)  => {
+        if (err) throw err
+        res.send(results)
+    })
+})
+
+// Edit department name in DB
+app.patch('/editDepartment', (req, res) => {
+    const sql = `
+        UPDATE Department
+        SET DeptName = '${req.query.newDeptName}'
+        WHERE DeptID = '${req.query.deptID}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Edited department in DB.')
+    })
+})
+
+// Delete department from DB
+app.delete('/deleteDepartment/:id', (req, res) => {
+    const sql = `
+        DELETE
+        FROM Department
+        WHERE DeptID = '${req.params.id}'
+    `
+    db.query(sql, err => {
+        if (err) throw err
+        res.send('Deleted department from DB.')
+    })
+})
+
 // Check if user already exists in DB. If not, add user to DB
 app.post('/loginSignupUser', (req, res) => {
     const userID = req.query.userID
