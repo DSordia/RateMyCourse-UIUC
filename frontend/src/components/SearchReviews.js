@@ -21,25 +21,30 @@ class SearchReviews extends Component {
         this.setState({selectedCourse})
 
         const reviews = await axios.get(`/getReviews/${selectedCourse.value}`)
-        const ratings = await axios.get(`/getCourseRating/${selectedCourse.value}`)
+        const avgCourseRating = await axios.get(`/getAvgCourseRating/${selectedCourse.value}`)
+        const avgProfRatings = await axios.get(`/getAvgProfessorRatings/${selectedCourse.value}`)
+        const avgDeptRating = await axios.get(`/getAvgDeptRating/${selectedCourse.value}`)
         const deptInfo = await axios.get(`/getDeptInfo/${selectedCourse.value}`)
-        const deptAvg = await axios.get(`/getAvgDeptRating/${deptInfo.data[0].DeptID}`)
         const courseNameAndNumReviews = await axios.get(`/getCourseNameAndNumReviews/${selectedCourse.value}`)
 
         let profRatings = []
-        for (const entry of ratings.data) profRatings.push(entry.profRating.toFixed(2))
+        for (const entry of avgProfRatings.data) {
+            if (entry.AvgProfessorRating !== null) {
+                profRatings.push(entry.AvgProfessorRating.toFixed(2))
+            } else {
+                profRatings.push(null)
+            }
+        }
 
-        let courseRating = ratings.data.length > 0 ? ratings.data[0].courseRating : null
-        let deptAvgVal = deptAvg.data[0].avgDeptCourseRating !== null ? deptAvg.data[0].avgDeptCourseRating.toFixed(2) : null
         let numReviews = courseNameAndNumReviews.data.length > 0 ? courseNameAndNumReviews.data[0].numReviews : 0
 
         this.setState({
             reviews: reviews.data,
-            overallCourseRating: courseRating,
+            overallCourseRating: avgCourseRating.data[0].AvgCourseRating,
             profRatings: profRatings,
             deptName: deptInfo.data[0].DeptName,
             deptSize: deptInfo.data[0].deptSize,
-            deptAvg: deptAvgVal,
+            deptAvg: avgDeptRating.data[0].AvgDepartmentRating,
             numReviews: numReviews
         })
     }
