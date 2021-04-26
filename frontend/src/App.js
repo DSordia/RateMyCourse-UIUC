@@ -15,7 +15,8 @@ class App extends Component {
     courseCodeToName: {},
     searchSelected: true,
     addSelected: false,
-    editSelected: false
+    editSelected: false,
+    reviewsLiked: {}
   }
 
   async componentDidMount() {
@@ -61,7 +62,18 @@ class App extends Component {
     })
   }
 
-  logIn = userID => this.setState({isLoggedIn: true, userID: userID})
+  logIn = async userID => {
+    const likedReviews = await axios.get(`/getLikedReviews/${userID}`)
+
+    let reviewsLiked = {}
+    for (const entry of likedReviews.data) reviewsLiked[entry.ReviewID] = entry.Liked
+
+    this.setState({
+      isLoggedIn: true,
+      userID: userID,
+      reviewsLiked: reviewsLiked
+    })
+  }
 
   logOut = () => {
     this.setState({
@@ -76,7 +88,10 @@ class App extends Component {
       addSelected: false,
       editSelected: false
     })
+    window.location.reload()
   }
+
+  updateReviewsLiked = reviewsLiked => this.setState({reviewsLiked: reviewsLiked})
 
   /* Update screen based on tab clicked */
   searchTabClicked = () => this.setState({searchSelected: true, addSelected: false, editSelected: false})
@@ -84,7 +99,7 @@ class App extends Component {
   editTabClicked = () => this.setState({searchSelected: false, addSelected: false, editSelected: true})
 
   render() {
-    const { isLoggedIn, userID, courses, courseToProfs, searchSelected, addSelected, editSelected, courseCodeToName } = this.state
+    const { isLoggedIn, userID, courses, courseToProfs, searchSelected, addSelected, editSelected, courseCodeToName, reviewsLiked } = this.state
 
     return (
       <>
@@ -116,7 +131,10 @@ class App extends Component {
             </TabsDiv>
             <>
               {searchSelected ? <SearchReviews courses={courses}
-                                               courseToProfs={courseToProfs} />
+                                               courseToProfs={courseToProfs}
+                                               reviewsLiked={reviewsLiked}
+                                               updateReviewsLiked={this.updateReviewsLiked}
+                                               userID={userID} />
 
               : addSelected ? <AddReviews userID={userID}
                                           courses={courses}

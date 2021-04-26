@@ -29,7 +29,6 @@ app.post('/loginSignupUser', (req, res) => {
         FROM User
         WHERE UserID = '${userID}'
     `
-
     db.query(sql, (err, results) => {
         if (err) throw err
         // User doesn't already exist in DB; create user
@@ -56,7 +55,19 @@ app.get('/getUserReviews/:id', (req, res) => {
         FROM Review
         WHERE UserID = '${req.params.id}'
     `
+    db.query(sql, (err, results) => {
+        if (err) throw err
+        res.send(results)
+    })
+})
 
+// Get reviews liked/disliked by user
+app.get('/getLikedReviews/:id', (req, res) => {
+    const sql = `
+        SELECT ReviewID, Liked
+        FROM Likes
+        WHERE UserID = '${req.params.id}'
+    `
     db.query(sql, (err, results) => {
         if (err) throw err
         res.send(results)
@@ -69,8 +80,8 @@ app.get('/getReviews/:id', (req, res) => {
         SELECT *
         FROM Review
         WHERE CourseCode = '${req.params.id}'
+        ORDER BY Likes DESC
     `
-
     db.query(sql, (err, results) => {
         if (err) throw err
         res.send(results)
@@ -89,7 +100,6 @@ app.post('/addReview', (req, res) => {
                '${req.query.professorName}',
                '${req.query.userID}')
     `
-
     db.query(sql, err => {
         if (err) throw err
         res.send('Added review to DB.')
@@ -107,7 +117,6 @@ app.patch('/editReview', (req, res) => {
             ProfessorName = '${req.query.professorName}'
         WHERE ReviewID = '${req.query.reviewID}'
     `
-
     db.query(sql, err => {
         if (err) throw err
         res.send('Edited review in DB.')
@@ -121,7 +130,6 @@ app.delete('/deleteReview/:id', (req, res) => {
         FROM Review
         WHERE ReviewID = '${req.params.id}'
     `
-
     db.query(sql, err => {
         if (err) throw err
         res.send('Deleted review from DB.')
@@ -135,72 +143,255 @@ app.get('/getCoursesAndProfs', (req, res) => {
         FROM Course
         ORDER BY ProfessorName
     `
-
     db.query(sql, (err, results) => {
         if (err) throw err
         res.send(results)
     })
 })
 
-// Get avg course rating
-app.get('/getAvgCourseRating/:id', (req, res) => {
+// Review was liked, unliked, disliked, or undisliked (first time)
+app.post('/likedReviewFirstTime', (req, res) => {
     const sql = `
-        SELECT AvgCourseRating
-        FROM Course
-        WHERE CourseCode = '${req.params.id}'
+        INSERT INTO Likes
+        VALUES('${req.query.userID}', ${req.query.reviewID}, ${req.query.liked})
     `
-
-    db.query(sql, (err, results) => {
+    db.query(sql, err => {
         if (err) throw err
-        res.send(results)
+        res.send('Added entry to likes table in DB.')
     })
 })
 
-// Get avg professor ratings for course
-app.get('/getAvgProfessorRatings/:id', (req, res) => {
+// Review was liked, unliked, disliked, or undisliked (not first time)
+app.patch('/likedReview', (req, res) => {
     const sql = `
-        SELECT p.AvgProfessorRating
-        FROM Professor p NATURAL JOIN Course c
-        WHERE c.CourseCode = '${req.params.id}'
-        ORDER BY p.ProfessorName
+        UPDATE Likes
+        SET Liked = '${req.query.liked}'
+        WHERE UserID = '${req.query.userID}' AND ReviewID = '${req.query.reviewID}'
     `
-
-    db.query(sql, (err, results) => {
+    db.query(sql, err => {
         if (err) throw err
-        res.send(results)
+        res.send('Edited likes entry in DB.')
     })
 })
 
-// Get department avg for department of course
-app.get('/getAvgDeptRating/:id', (req, res) => {
+/* TRIGGER: When Likes table is inserted into or updated, updates # of likes / dislikes for review
+DELIMITER $;
+CREATE TRIGGER ReviewLikedFirstTime
+AFTER INSERT ON Likes
+FOR EACH ROW
+BEGIN
+SET @numLikes = (SELECT Likes
+                 FROM Review
+                 WHERE ReviewID = new.ReviewID);
+SET @numDislikes = (SELECT Dislikes
+                    FROM Review
+                    WHERE ReviewID = new.ReviewID);
+
+IF (new.Liked = 1) THEN
+    UPDATE Review
+    SET Likes = @numLikes + 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (new.Liked = -1) THEN
+    UPDATE Review
+    SET Dislikes = @numDislikes + 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+END;
+$;
+
+DELIMITER $;
+CREATE TRIGGER ReviewLiked
+BEFORE INSERT ON Likes
+FOR EACH ROW
+BEGIN
+SET @numLikes = (SELECT Likes
+                 FROM Review
+                 WHERE ReviewID = new.ReviewID);
+SET @numDislikes = (SELECT Dislikes
+                    FROM Review
+                    WHERE ReviewID = new.ReviewID);
+SET @currentLiked = (SELECT Liked
+                     FROM Likes
+                     WHERE UserID = new.UserID AND ReviewID = new.ReviewID);
+
+IF (@currentLiked = 0 AND new.Liked = 1) THEN
+    UPDATE Review
+    SET Likes = @numLikes + 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (@currentLiked = 1 AND new.Liked = 0) THEN
+    UPDATE Review
+    SET Likes = @numLikes - 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (@currentLiked = 1 AND new.Liked = -1) THEN
+    UPDATE Review
+    SET Likes = @numLikes - 1, Dislikes = @numDislikes + 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (@currentLiked = -1 AND new.Liked = 1) THEN
+    UPDATE Review
+    SET Likes = @numLikes + 1, Dislikes = @numDislikes - 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (@currentLiked = -1 AND new.Liked = 0) THEN
+    UPDATE Review
+    SET Dislikes = @numDislikes - 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+
+IF (@currentLiked = 0 AND new.Liked = -1) THEN
+    UPDATE Review
+    SET Dislikes = @numDislikes + 1
+    WHERE ReviewID = new.ReviewID;
+END IF;
+END;
+$; */
+
+// Stored procedure for returning search results using advanced queries
+app.get('/searchResultProcedure/:id', (req, res) => {
     const sql = `
-        SELECT d.AvgDepartmentRating
-        FROM Department d NATURAL JOIN Course c
-        WHERE c.CourseCode = '${req.params.id}'
+        CALL SearchResultProcedure('${req.params.id}')
     `
-
     db.query(sql, (err, results) => {
         if (err) throw err
         res.send(results)
     })
 })
+
+/* STORED PROCEDURE: Returns search results using 3 advanced queries
+DELIMITER $;
+CREATE PROCEDURE SearchResultProcedure(IN courseCodeParam VARCHAR(50))
+BEGIN
+    DROP TABLE IF EXISTS SearchResultTable;
+    CREATE TABLE SearchResultTable (
+        DeptName VARCHAR(100),
+        DeptSize INTEGER,
+        ProfName VARCHAR(50),
+        ProfRating DOUBLE,
+        CourseRating DOUBLE,
+        DeptAvg DOUBLE
+    );
+    BEGIN
+        DECLARE done INT DEFAULT 0;
+        DECLARE DeptName_ VARCHAR(100) DEFAULT "";
+        DECLARE DeptSize_ INTEGER DEFAULT 0;
+        
+        DECLARE cur1 CURSOR FOR SELECT DISTINCT d1.DeptName, (SELECT COUNT(DISTINCT c2.CourseCode)
+                                                              FROM Course c2 NATURAL JOIN Department d2
+                                                              WHERE d2.DeptID = d1.DeptID) AS deptSize
+                                FROM Course c1 NATURAL JOIN Department d1
+                                WHERE c1.CourseCode = courseCodeParam;
+        
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+        
+        OPEN cur1;
+            REPEAT
+                FETCH cur1 INTO DeptName_, DeptSize_;
+                IF DeptName_ IS NOT NULL THEN
+                    INSERT INTO SearchResultTable(DeptName, DeptSize)
+                    VALUES(DeptName_, DeptSize_);
+                END IF;
+            UNTIL done
+            END REPEAT;
+        CLOSE cur1;
+        
+        SELECT DISTINCT DeptName, DeptSize
+        FROM SearchResultTable
+        WHERE DeptName IS NOT NULL;
+    END;
+    
+    BEGIN
+        DECLARE done INT DEFAULT 0;
+        DECLARE ProfName_ VARCHAR(50) DEFAULT "";
+        DECLARE CourseRating_ DOUBLE DEFAULT 0.0;
+        DECLARE ProfRating_ DOUBLE DEFAULT 0.0;
+        
+        DECLARE cur2 CURSOR FOR SELECT ProfessorName AS profName, AVG(ProfessorRating) AS profRating, (SELECT AVG(CourseRating)
+                                                                                                      FROM Review
+                                                                                                      WHERE CourseCode = courseCodeParam) AS courseRating
+                               FROM Review
+                               WHERE CourseCode = courseCodeParam
+                               GROUP BY ProfessorName
+                               ORDER BY ProfessorName;
+                               
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+        
+        OPEN cur2;
+            REPEAT
+                FETCH cur2 INTO ProfName_, ProfRating_, CourseRating_;
+                IF ProfName_ IS NOT NULL THEN
+                    INSERT INTO SearchResultTable(ProfName, ProfRating, CourseRating)
+                    VALUES(ProfName_, ProfRating_, CourseRating_);
+                END IF;
+            UNTIL done
+            END REPEAT;
+        CLOSE cur2;
+        
+        SELECT DISTINCT ProfName, ProfRating, CourseRating
+        FROM SearchResultTable
+        WHERE ProfName IS NOT NULL
+        ORDER BY ProfName;
+    END;
+    
+    BEGIN
+        DECLARE done INT DEFAULT 0;
+        DECLARE DeptAvg_ DOUBLE DEFAULT 0.0;
+        
+        DECLARE cur3 CURSOR FOR SELECT AVG(r.CourseRating) AS avgDeptCourseRating
+                                FROM Review r, Department d
+                                WHERE d.DeptID = (SELECT DISTINCT DeptID
+                                                  FROM Course
+                                                  WHERE CourseCode = courseCodeParam) AND r.CourseCode IN (SELECT c.CourseCode
+                                                       FROM Course c
+                                                       WHERE c.DeptID = (SELECT DISTINCT DeptID
+                                                                         FROM Course
+                                                                         WHERE CourseCode = courseCodeParam));
+
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+        
+        OPEN cur3;
+            REPEAT
+                FETCH cur3 INTO DeptAvg_;
+                IF DeptAvg_ IS NOT NULL THEN
+                    INSERT INTO SearchResultTable(DeptAvg)
+                    VALUES(DeptAvg_);
+                ELSE
+                    INSERT INTO SearchResultTable(DeptAvg)
+                    VALUES(0.0);
+                END IF;
+            UNTIL done
+            END REPEAT;
+        CLOSE cur3;
+        
+        SELECT DISTINCT DeptAvg
+        FROM SearchResultTable
+        WHERE DeptAvg IS NOT NULL;
+    END;
+END;
+$; */
 
 /* Advanced Query 1: Get department ID, department name, and size of department
    for a course given the course code; :id is the course code */
-app.get('/getDeptInfo/:id', (req, res) => {
-    const sql = `
-        SELECT DISTINCT d1.DeptID, d1.DeptName, (SELECT COUNT(DISTINCT c2.CourseCode)
-                                                 FROM Course c2 NATURAL JOIN Department d2
-                                                 WHERE d2.DeptID = d1.DeptID) AS deptSize
-        FROM Course c1 NATURAL JOIN Department d1
-        WHERE c1.CourseCode = '${req.params.id}'
-    `
-
-    db.query(sql, (err, results) => {
-        if (err) throw err
-        res.send(results)
-    })
-})
+// app.get('/getDeptInfo/:id', (req, res) => {
+//     const sql = `
+//         SELECT DISTINCT d1.DeptName, (SELECT COUNT(DISTINCT c2.CourseCode)
+//                                       FROM Course c2 NATURAL JOIN Department d2
+//                                       WHERE d2.DeptID = d1.DeptID) AS deptSize
+//         FROM Course c1 NATURAL JOIN Department d1
+//         WHERE c1.CourseCode = '${req.params.id}'
+//     `
+//     db.query(sql, (err, results) => {
+//         if (err) throw err
+//         res.send(results)
+//     })
+// })
 
 /* Advanced Query 2: Get overall course rating
    and professor ratings for that course; :id is CourseCode */
@@ -221,20 +412,19 @@ app.get('/getDeptInfo/:id', (req, res) => {
 // })
 
 /* Advanced Query 3: Gets the avg rating of all courses in a department */
-app.get('/getAvgDeptRating/:id', (req, res) => {
-    const sql = `
-    SELECT d.DeptName, AVG(r.CourseRating) AS avgDeptCourseRating
-    FROM Review r, Department d
-    WHERE d.DeptID = '${req.params.id}' AND r.CourseCode IN (SELECT c.CourseCode
-                                                             FROM Course c
-                                                             WHERE c.DeptID = '${req.params.id}')
-    `
-
-    db.query(sql, (err, results) => {
-        if (err) throw err
-        res.send(results)
-    })
-})
+// app.get('/getAvgDeptRating/:id', (req, res) => {
+//     const sql = `
+//     SELECT AVG(r.CourseRating) AS avgDeptCourseRating
+//     FROM Review r, Department d
+//     WHERE d.DeptID = '${req.params.id}' AND r.CourseCode IN (SELECT c.CourseCode
+//                                                              FROM Course c
+//                                                              WHERE c.DeptID = '${req.params.id}')
+//     `
+//     db.query(sql, (err, results) => {
+//         if (err) throw err
+//         res.send(results)
+//     })
+// })
 
 /* Advanced Query 4: Get course name and number of reviews for that course */
 app.get('/getCourseNameAndNumReviews/:id', (req, res) => {
@@ -245,7 +435,6 @@ app.get('/getCourseNameAndNumReviews/:id', (req, res) => {
         FROM Course c NATURAL JOIN Review r
         WHERE c.CourseCode = '${req.params.id}'
     `
-
     db.query(sql, (err, results) => {
         if (err) throw err
         res.send(results)

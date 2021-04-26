@@ -225,3 +225,22 @@ export const AreYouSureBtn = styled.button`
     @media (min-width: 768px) and (max-width: 1200px) { width: 30%; }
     @media (min-width: 1200px) { width: 25%; }
 `
+export const ThumbsDiv = styled.div`
+    display: flex;
+    margin-top: -20px;
+    justify-content: space-between;
+    padding-left: 4%;
+    padding-right: 4%;
+    padding-bottom: 1%;
+`
+export const ThumbsUpStyle = {
+  color: 'green',
+  cursor: 'pointer',
+  paddingBottom: '5px'
+}
+
+export const ThumbsDownStyle = {
+  color: 'red',
+  cursor: 'pointer',
+  paddingBottom: '5px'
+}

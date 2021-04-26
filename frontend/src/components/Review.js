@@ -6,30 +6,44 @@ import consts from '../constants'
 import AreYouSureModal from './AreYouSureModal'
 import { SearchReviewDiv, SearchReviewHeading, ProfessorText, HR1, ReviewRatingText,
          ProfessorRatingText, ReviewText, DropdownDiv, ReviewHeading, ReviewDiv,
-         ReviewTextArea, SubmitButton, AfterSubmit, DeleteButton } from '../styles/styles'
+         ReviewTextArea, SubmitButton, AfterSubmit, DeleteButton, ThumbsDiv,
+         ThumbsUpStyle, ThumbsDownStyle } from '../styles/styles'
+import { FaRegThumbsUp, FaRegThumbsDown, FaThumbsUp, FaThumbsDown } from 'react-icons/fa'
 
 class Review extends Component {
-    state = {
-        course: '',
-        professor: '',
-        classRating: '',
-        profRating: '',
-        newReviewText: '',
-        reviewID: '',
-        reviewAdded: false,
-        changesSaved: false,
-        showAreYouSureModal: false
+    constructor(props) {
+        super(props)
+
+        this.state = {
+            course: '',
+            professor: '',
+            classRating: '',
+            profRating: '',
+            newReviewText: '',
+            reviewID: props.reviewID,
+            reviewAdded: false,
+            changesSaved: false,
+            showAreYouSureModal: false,
+            numLikes: props.likes,
+            numDislikes: props.dislikes
+        }
     }
 
     static getDerivedStateFromProps(props, state) {
         // Initialize state with existing review info
-        if (props.editing && props.reviewID !== state.reviewID) {
+        if (props.editing && (props.reviewID !== state.reviewID)) {
             return {
                 course: props.course,
                 professor: props.professor,
                 classRating: props.classRating,
                 profRating: props.profRating,
                 newReviewText: props.reviewText,
+                reviewID: props.reviewID
+            }
+        } else if (props.viewing && (props.reviewID !== state.reviewID)) {
+            return {
+                numLikes: props.likes,
+                numDislikes: props.dislikes,
                 reviewID: props.reviewID
             }
         } else {
@@ -50,7 +64,6 @@ class Review extends Component {
         const { userID } = this.props
         const { course, professor, classRating, profRating, newReviewText } = this.state
 
-        // Need a better way to do this..
         const reviewID = Math.floor(Math.random() * 2147482647) + 1000
 
         const params = {
@@ -88,17 +101,13 @@ class Review extends Component {
         }
 
         await axios.patch('/editReview', null, { params: params })
-
         await this.props.updateReviews({value: course.value, label: course.label})
-        
         this.setState({changesSaved: true})
     }
 
     onDeleteReview = async () => {
         const reviewID = this.props.reviewID
-
         await axios.delete(`/deleteReview/${reviewID}`)
-
         this.props.removeReviewOption(reviewID)
 
         this.setState({
@@ -109,6 +118,45 @@ class Review extends Component {
             newReviewText: '',
             reviewID: ''
         })
+    }
+
+    reviewLiked = async (liked, likedVal) => {
+        let { reviewID } = this.props
+        let { numLikes, numDislikes } = this.state
+        let reviewsLiked = {...this.props.reviewsLiked}
+
+        if (liked && likedVal === 0 && reviewsLiked[reviewID] === 1) {
+            this.setState({numLikes: --numLikes})
+        } else if (liked && likedVal === 1 && reviewsLiked[reviewID] === 0) {
+            this.setState({numLikes: ++numLikes})
+        } else if (liked && likedVal === 1 && reviewsLiked[reviewID] === -1) {
+            this.setState({numLikes: ++numLikes, numDislikes: --numDislikes})
+        } else if (!liked && likedVal === 0 && reviewsLiked[reviewID] === -1) {
+            this.setState({numDislikes: --numDislikes})
+        } else if (!liked && likedVal === -1 && reviewsLiked[reviewID] === 0) {
+            this.setState({numDislikes: ++numDislikes})
+        } else if (!liked && likedVal === -1 && reviewsLiked[reviewID] === 1) {
+            this.setState({numDislikes: ++numDislikes, numLikes: --numLikes})
+        } else if (liked) {
+            this.setState({numLikes: ++numLikes})
+        } else if (!liked) {
+            this.setState({numDislikes: ++numDislikes})
+        }
+
+        const params = {
+            reviewID: this.props.reviewID,
+            userID: this.props.userID,
+            liked: likedVal
+        }
+
+        if (this.props.reviewID in reviewsLiked) {
+            await axios.patch('/likedReview', null, { params: params })
+        } else {
+            await axios.post('/likedReviewFirstTime', null, { params: params })
+        }
+
+        reviewsLiked[this.props.reviewID] = likedVal
+        this.props.updateReviewsLiked(reviewsLiked)
     }
 
     /* Modal for confirming review deletion */
@@ -123,15 +171,15 @@ class Review extends Component {
     onTypeReview = reviewText => this.setState({newReviewText: reviewText})
 
     render() {
-        const { viewing, adding, editing, courseName, professorName, courseRating,
-                professorRating, reviewText, courses, courseToProfs, reviewID } = this.props
+        const { viewing, adding, editing, courseName, professorName, courseRating, professorRating,
+                reviewText, courses, courseToProfs, reviewID, reviewsLiked } = this.props
 
         const { course, professor, classRating, profRating, newReviewText, reviewAdded,
-                changesSaved, showAreYouSureModal } = this.state
+                changesSaved, showAreYouSureModal, numLikes, numDislikes } = this.state
 
         const submitDisabled = !course || !professor || !classRating || !profRating || !newReviewText
-
         const profOptions = course ? courseToProfs[course.value] : []
+        const reviewLiked = viewing ? reviewsLiked[reviewID] : null
 
         return (
             <>
@@ -144,6 +192,28 @@ class Review extends Component {
                         <ProfessorRatingText>Professor Rating: {professorRating} / 5</ProfessorRatingText>
                         <HR1 />
                         <ReviewText>{reviewText}</ReviewText>
+                        <ThumbsDiv>
+                            <div>
+                                {reviewLiked === 1 ?
+                                    <FaThumbsUp size={'1.8em'}
+                                                style={ThumbsUpStyle}
+                                                onClick={() => this.reviewLiked(true, 0)} />
+                                :   <FaRegThumbsUp size={'1.8em'}
+                                                   style={ThumbsUpStyle}
+                                                   onClick={() => this.reviewLiked(true, 1)} />}
+                                <div>{numLikes}</div>
+                            </div>
+                            <div>
+                                {reviewLiked === -1 ?
+                                    <FaThumbsDown size={'1.8em'}
+                                                  style={ThumbsDownStyle}
+                                                  onClick={() => this.reviewLiked(false, 0)} />
+                                :   <FaRegThumbsDown size={'1.8em'}
+                                                     style={ThumbsDownStyle}
+                                                     onClick={() => this.reviewLiked(false, -1)} />}
+                                <div>{numDislikes}</div>
+                            </div>
+                        </ThumbsDiv>
                     </SearchReviewDiv>
 
                 : adding || (editing && course) ?
@@ -204,10 +274,10 @@ class Review extends Component {
                         </ReviewDiv>
 
                         <SubmitButton isDisabled={submitDisabled}
-                                   onClick={!submitDisabled && adding ? this.onAddReview
+                                      onClick={!submitDisabled && adding ? this.onAddReview
                                            : !submitDisabled && editing ? this.onEditReview
                                            : () => {/*disabled, so do nothing*/}}>
-                                       {adding ? 'Add Review' : 'Save Changes'}
+                                    {adding ? 'Add Review' : 'Save Changes'}
                         </SubmitButton>
 
                         <AfterSubmit>

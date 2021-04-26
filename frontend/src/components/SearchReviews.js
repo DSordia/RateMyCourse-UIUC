@@ -18,39 +18,35 @@ class SearchReviews extends Component {
     }
 
     onSelectCourse = async selectedCourse => {
-        this.setState({selectedCourse})
-
         const reviews = await axios.get(`/getReviews/${selectedCourse.value}`)
-        const avgCourseRating = await axios.get(`/getAvgCourseRating/${selectedCourse.value}`)
-        const avgProfRatings = await axios.get(`/getAvgProfessorRatings/${selectedCourse.value}`)
-        const avgDeptRating = await axios.get(`/getAvgDeptRating/${selectedCourse.value}`)
-        const deptInfo = await axios.get(`/getDeptInfo/${selectedCourse.value}`)
         const courseNameAndNumReviews = await axios.get(`/getCourseNameAndNumReviews/${selectedCourse.value}`)
 
-        let profRatings = []
-        for (const entry of avgProfRatings.data) {
-            if (entry.AvgProfessorRating !== null) {
-                profRatings.push(entry.AvgProfessorRating.toFixed(2))
-            } else {
-                profRatings.push(null)
-            }
-        }
+        // Replaced with 1 call to stored procedure
+        // const ratings = await axios.get(`/getCourseRating/${selectedCourse.value}`)
+        // const deptInfo = await axios.get(`/getDeptInfo/${selectedCourse.value}`)
+        // const deptAvg = await axios.get(`/getAvgDeptRating/${deptInfo.data[0].DeptID}`)
+        const searchResult = await axios.get(`/searchResultProcedure/${selectedCourse.value}`)
 
+        let profRatings = []
+        for (const entry of searchResult.data[1]) profRatings.push(entry.ProfRating.toFixed(2))
+
+        let courseRating = searchResult.data[1].length > 0 ? searchResult.data[1][0].CourseRating.toFixed(2) : null
         let numReviews = courseNameAndNumReviews.data.length > 0 ? courseNameAndNumReviews.data[0].numReviews : 0
 
         this.setState({
+            selectedCourse: selectedCourse,
             reviews: reviews.data,
-            overallCourseRating: avgCourseRating.data[0].AvgCourseRating,
+            overallCourseRating: courseRating,
             profRatings: profRatings,
-            deptName: deptInfo.data[0].DeptName,
-            deptSize: deptInfo.data[0].deptSize,
-            deptAvg: avgDeptRating.data[0].AvgDepartmentRating,
+            deptName: searchResult.data[0][0].DeptName,
+            deptSize: searchResult.data[0][0].DeptSize,
+            deptAvg: searchResult.data[2][0].DeptAvg.toFixed(2),
             numReviews: numReviews
         })
     }
 
     render() {
-        const { courses, courseToProfs } = this.props
+        const { courses, courseToProfs, reviewsLiked, updateReviewsLiked, userID } = this.props
         const { selectedCourse, reviews, overallCourseRating, profRatings, deptName, deptSize, deptAvg, numReviews } = this.state
         const profs = courseToProfs[selectedCourse.value]
 
@@ -101,7 +97,12 @@ class SearchReviews extends Component {
                                 courseRating={review.CourseRating}
                                 professorRating={review.ProfessorRating}
                                 reviewText={review.ReviewText}
-                                reviewID={review.ReviewID} />
+                                reviewID={review.ReviewID}
+                                reviewsLiked={reviewsLiked}
+                                likes={review.Likes}
+                                dislikes={review.Dislikes}
+                                updateReviewsLiked={updateReviewsLiked}
+                                userID={userID} />
                     ))}
                 </>}
             </>
