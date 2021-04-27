@@ -80,7 +80,7 @@ app.get('/getReviews/:id', (req, res) => {
         SELECT *
         FROM Review
         WHERE CourseCode = '${req.params.id}'
-        ORDER BY Likes DESC
+        ORDER BY (Likes - Dislikes) DESC
     `
     db.query(sql, (err, results) => {
         if (err) throw err
@@ -203,7 +203,7 @@ $;
 
 DELIMITER $;
 CREATE TRIGGER ReviewLiked
-BEFORE INSERT ON Likes
+BEFORE UPDATE ON Likes
 FOR EACH ROW
 BEGIN
 SET @numLikes = (SELECT Likes
