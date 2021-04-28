@@ -7,10 +7,11 @@ const app = express()
 
 // Create connection to MySQL
 const db = mysql.createConnection({
-    host: process.env.HOST,
+    host: `/cloudsql/${process.env.HOST}`,
     user: process.env.USER,
     password: process.env.PASSWORD,
-    database: process.env.DATABASE
+    database: process.env.DATABASE,
+    socketPath: `/cloudsql/${process.env.HOST}`
 })
 
 // Connect to MySQL DB
