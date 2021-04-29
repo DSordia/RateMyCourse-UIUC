@@ -1,18 +1,32 @@
-import express from 'express'
-import mysql from 'mysql'
-import dotenv from 'dotenv'
-dotenv.config()
+const express = require('express')
+const mysql = require('mysql')
+require('dotenv').config()
 
 const app = express()
 
+/* Database Connection for Production */
+
+let config = {
+    user: process.env.DB_USER,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
+}
+
+if (process.env.INSTANCE_CONNECTION_NAME && process.env.NODE_ENV === 'production') {
+  config.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+}
+
+const db = mysql.createConnection(config)
+
+/* Database Connection for Development */
+
 // Create connection to MySQL
-const db = mysql.createConnection({
-    host: `/cloudsql/${process.env.HOST}`,
-    user: process.env.USER,
-    password: process.env.PASSWORD,
-    database: process.env.DATABASE,
-    socketPath: `/cloudsql/${process.env.HOST}`
-})
+// const db = mysql.createConnection({
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASS,
+//     database: process.env.DB_NAME
+// })
 
 // Connect to MySQL DB
 db.connect(err => {

@@ -16,6 +16,5 @@
     "mysql": "^2.18.1",
     "nodemon": "^2.0.7",
     "react-icons": "^4.2.0"
-  },
-  "type": "module"
+  }
 }
