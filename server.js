@@ -1,32 +1,40 @@
 const express = require('express')
 const mysql = require('mysql')
+const path = require('path')
 require('dotenv').config()
-
 const app = express()
 
-/* Database Connection for Production */
+// Database connection to MySQL
+let db = {}
 
-let config = {
-    user: process.env.DB_USER,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASS,
+// In production
+if (process.env.NODE_ENV === 'production') {
+    let config = {
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASS,
+    }
+    
+    if (process.env.INSTANCE_CONNECTION_NAME) {
+      config.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
+    }
+    
+    db = mysql.createConnection(config)
+
+    // Load frontend from root URL
+    app.get('/', (req, res) => {
+        app.use(express.static('frontend/build'))
+        res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'))
+    })
+// In development
+} else {
+    db = mysql.createConnection({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME
+    })
 }
-
-if (process.env.INSTANCE_CONNECTION_NAME && process.env.NODE_ENV === 'production') {
-  config.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
-}
-
-const db = mysql.createConnection(config)
-
-/* Database Connection for Development */
-
-// Create connection to MySQL
-// const db = mysql.createConnection({
-//     host: process.env.DB_HOST,
-//     user: process.env.DB_USER,
-//     password: process.env.DB_PASS,
-//     database: process.env.DB_NAME
-// })
 
 // Connect to MySQL DB
 db.connect(err => {
@@ -113,7 +121,9 @@ app.post('/addReview', (req, res) => {
                ${req.query.professorRating},
                '${req.query.courseCode}',
                '${req.query.professorName}',
-               '${req.query.userID}')
+               '${req.query.userID}',
+               0,
+               0)
     `
     db.query(sql, err => {
         if (err) throw err
