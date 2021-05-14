@@ -19,4 +19,9 @@ A full stack web application for posting ratings/reviews for courses and profess
 - Fully responsive / mobile-friendly
 - Incorporated advanced MySQL functionality (stored procedure / trigger)
 
+![pic1](pics/pic1.PNG)
+![pic2](pics/pic2.PNG)
+![pic3](pics/pic3.PNG)
+![pic4](pics/pic4.PNG)
+
 Note: The website is no longer accessible as credits on Google Cloud Platform have run out.
