@@ -24,4 +24,6 @@ A full stack web application for posting ratings/reviews for courses and profess
 ![pic3](pics/pic3.PNG)
 ![pic4](pics/pic4.PNG)
 
+
+
 Note: The website is no longer accessible as credits on Google Cloud Platform have run out.
