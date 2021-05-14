@@ -1,13 +1,13 @@
 # RateMyCourse-UIUC
 A full stack web application for posting ratings/reviews for courses and professors at UIUC.
 
-# Technologies Used:
+## Technologies Used:
 - MySQL Server hosted on Google Cloud Platform for the database
 - React for the front-end
 - Express / Node for connecting to MySQL
 - Deployed via Google App Engine
 
-# Features:
+## Features:
 - Log in or sign up with a Google account
 - View reviews/ratings for any course at UIUC, which get displayed along with the likes/dislikes for the review, and additional key information about the department the course is in
 - Like or dislike reviews if they find the review helpful or unhelpful
